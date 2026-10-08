@@ -78,3 +78,11 @@ export class MyObject {
         this.childs.forEach(child => child.render(this.MODEL_MATRIX));
     }
 }
+
+// Helper: buat MyObject baru, atur pose awal, lalu pasang ke parent
+export function makeNode(ctx, parent, geo, pos = [0,0,0], eul = [0,0,0]) {
+    const o = new MyObject(ctx.GL, ctx.prog, ctx.locs, geo);
+    o.setPose(pos, eul);
+    parent.add(o);
+    return o;
+}

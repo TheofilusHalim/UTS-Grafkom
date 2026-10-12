@@ -36,7 +36,9 @@ export class Dummy extends Character {
   pose(time, dt) {
     const P = this.params, w = P.wave || 0, amp = this.walkAmp, ph = this.phase;
     const sw = Math.sin(ph) * 25 * amp;
-    this.body.setTransform({ translate: [0, Math.abs(Math.sin(ph)) * 0.06 * amp, 0], scale: [1, 1 + 0.01 * Math.sin(time * 2), 1] });
+    // penyesuai lantai: badan naik-turun mengikuti rentangan kaki supaya telapak selalu menapak
+    const bodyY = 0.10 + 1.62 * Math.cos(sw * Math.PI / 180) + 0.65;
+    this.body.setTransform({ translate: [0, bodyY - 2.3, 0], scale: [1, 1 + 0.01 * Math.sin(time * 2), 1] });
     this.legL.setTransform({ axis: [1, 0, 0.05], angle: sw });
     this.legR.setTransform({ axis: [1, 0, 0.05], angle: -sw });
     this.armL.up.setTransform({ axis: [1, 0, 0.1], angle: -sw * 0.8 });

@@ -38,4 +38,21 @@ export class Animated {
   params = {};
   track(name, keys) { this.tracks[name] = new Track(keys); return this; }
   sample(time) { for (const n in this.tracks) this.params[n] = this.tracks[n].at(time); }
+  // nilai param pada waktu t (dari track bila ada, kalau tidak nilai default)
+  valueAt(name, t) {
+    const tr = this.tracks[name];
+    if (tr) return tr.at(t);
+    const v = this.params[name];
+    return Array.isArray(v) ? v.slice() : (v === undefined ? 0 : v);
+  }
+  // tambah keyframe ke track (keyframe dengan waktu sama akan diganti)
+  addKeys(name, keys) {
+    if (!this.tracks[name]) this.tracks[name] = new Track(keys);
+    else {
+      const tr = this.tracks[name];
+      keys.forEach(k => { tr.keys = tr.keys.filter(x => x.t !== k.t); tr.keys.push(k); });
+      tr.keys.sort((a, b) => a.t - b.t);
+    }
+    return this;
+  }
 }

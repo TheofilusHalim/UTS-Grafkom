@@ -60,6 +60,22 @@ export const LIBS = {
     return [s[0],u[0],-f[0],0, s[1],u[1],-f[1],0, s[2],u[2],-f[2],0, -d(s,eye),-d(u,eye),d(f,eye),1];
   },
 
+  // Matriks normal = inverse-transpose dari 3x3 kiri-atas.
+  // Wajib dipakai agar normal tetap benar pada objek yang diskalakan tidak seragam (mulut, badan "bernapas", dst).
+  normalMatrix(m) {
+    const A = (i, j) => m[j*4 + i];
+    const C = [
+      [A(1,1)*A(2,2) - A(1,2)*A(2,1), -(A(1,0)*A(2,2) - A(1,2)*A(2,0)), A(1,0)*A(2,1) - A(1,1)*A(2,0)],
+      [-(A(0,1)*A(2,2) - A(0,2)*A(2,1)), A(0,0)*A(2,2) - A(0,2)*A(2,0), -(A(0,0)*A(2,1) - A(0,1)*A(2,0))],
+      [A(0,1)*A(1,2) - A(0,2)*A(1,1), -(A(0,0)*A(1,2) - A(0,2)*A(1,0)), A(0,0)*A(1,1) - A(0,1)*A(1,0)]
+    ];
+    let det = A(0,0)*C[0][0] + A(0,1)*C[0][1] + A(0,2)*C[0][2];
+    if (Math.abs(det) < 1e-12) det = 1;
+    const o = new Float32Array(9);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) o[j*3 + i] = C[i][j] / det;
+    return o;
+  },
+
   transformPoint(m, p) {
     return [m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12],
             m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13],

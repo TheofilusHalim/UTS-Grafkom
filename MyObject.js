@@ -1,6 +1,8 @@
 // MyObject.js -- node hierarki (parent-child)
 import { LIBS } from "./helpers/libs.js";
 
+const SHELLS = 14;   // jumlah lapisan bulu (shell fur)
+
 export class MyObject {
     GL = null;
     SHADER_PROGRAM = null;
@@ -19,6 +21,8 @@ export class MyObject {
     childs = [];             // HIERARKI
     tint = [1, 1, 1];        // pengali warna (untuk perubahan warna halus)
     emissive = 0;            // cahaya sendiri (lampu)
+    furLen = 0;              // >0 -> objek diberi bulu halus (lapisan-lapisan transparan setinggi furLen)
+    furMask = [0, 0, 0, 0];  // bola [x,y,z,r] di ruang objek: di dalamnya TIDAK berbulu (wajah)
 
     constructor(GL, SHADER_PROGRAM, locs, geo = { vertex: [], faces: [] }) {
         this.GL = GL;
@@ -65,14 +69,24 @@ export class MyObject {
         if (this.faces.length > 0) {
             GL.useProgram(this.SHADER_PROGRAM);
             GL.uniformMatrix4fv(L.M, false, new Float32Array(this.MODEL_MATRIX));
+            GL.uniformMatrix3fv(L.N, false, LIBS.normalMatrix(this.MODEL_MATRIX));   // inverse-transpose
             GL.uniform3fv(L.tint, this.tint);
             GL.uniform1f(L.emissive, this.emissive);
+            GL.uniform1f(L.furLen, this.furLen);
+            GL.uniform4fv(L.furMask, this.furMask);
             GL.bindBuffer(GL.ARRAY_BUFFER, this.OBJECT_VERTEX);
             GL.vertexAttribPointer(L.position, 3, GL.FLOAT, false, 36, 0);
             GL.vertexAttribPointer(L.color,    3, GL.FLOAT, false, 36, 12);
             GL.vertexAttribPointer(L.normal,   3, GL.FLOAT, false, 36, 24);
             GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.OBJECT_FACES);
+            GL.uniform1f(L.shell, 0);                                                 // kulit dasar
             GL.drawElements(GL.TRIANGLES, this.faces.length, GL.UNSIGNED_SHORT, 0);
+            if (this.furLen > 0)                                                      // lapisan bulu, makin ke luar makin jarang
+                for (let i = 1; i <= SHELLS; i++) {
+                    GL.uniform1f(L.shell, i / SHELLS);
+                    GL.drawElements(GL.TRIANGLES, this.faces.length, GL.UNSIGNED_SHORT, 0);
+                }
+            GL.uniform1f(L.shell, 0);
         }
         // HIERARKI: matriks dunia parent diwariskan ke semua anak
         this.childs.forEach(child => child.render(this.MODEL_MATRIX));

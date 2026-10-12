@@ -1,6 +1,9 @@
-// story.js -- ALUR CERITA 100 detik (sutradara). Semua gerakan = keyframe: key(waktu, nilai, easing).
-// Karakter/teman cukup memberi nama track yang sama dengan parameter karakternya.
-import { key, ease } from "./helpers/anim.js";
+// story.js -- ALUR CERITA 100 detik. Hanya MEMANGGIL fungsi gerak dari helpers/actions.js.
+// Contoh:  moveTo(huggy, 30, 48, [0,0,-11])   = Huggy berjalan ke z=-11 dari detik 30 sampai 48
+//          scaleTo(huggy, 54, 57, 1.3)         = Huggy membesar jadi 1.3x
+//          pulse(huggy, "wave", 46, 48, 53, 55) = melambai: naik 46-48, tahan sampai 53, turun 55
+import { set, param, pulse, moveTo, turnTo, scaleTo, camTo, flicker } from "./helpers/actions.js";
+import { ease } from "./helpers/anim.js";
 
 export const DURATION = 100;
 
@@ -19,51 +22,47 @@ export const captions = [
 ];
 
 export function buildStory({ env, huggy, charB, charC, cam }) {
-  const L = ease.linear;
-
   // ================= KAMERA =================
-  cam.track("eye", [
-    key(0, [0, 7, 15]), key(6, [0, 3.9, 9.5]), key(24, [0, 3.9, 9.5]), key(30, [0.5, 3.4, 5.5]),
-    key(44, [0, 3.7, 7.5]), key(53, [0, 3.7, 7.5]), key(55, [0, 2.0, 3.5]), key(64, [0, 2.2, 4]),
-    key(68, [0.8, 5.8, -3.5]), key(80, [0.8, 5.8, -3.5]), key(90, [0, 3.9, 2]), key(100, [0, 3.9, 9])]);
-  cam.track("target", [
-    key(0, [0, 2.5, -10]), key(6, [0, 3, -8]), key(24, [0, 3, -8]), key(30, [0, 4.5, -30]),
-    key(44, [0, 4, -10]), key(53, [0, 4, -10]), key(55, [0, 5, -9]), key(64, [0, 5, -9]),
-    key(68, [0, 5.6, -7.5]), key(80, [0, 5.6, -7.5]), key(90, [0, 3.5, -20]), key(100, [0, 3.5, -30])]);
-  cam.track("shake", [key(0, 0), key(54, 0), key(55, 1), key(63, 1), key(66, 0)]);
+  set(cam, "eye", 0, [0, 7, 15]);  set(cam, "target", 0, [0, 2.5, -10]);  set(cam, "shake", 0, 0);
+  camTo(cam, 0, 6,   [0, 3.9, 9.5],   [0, 3, -8]);          // turun ke ketinggian mata
+  camTo(cam, 24, 30, [0.5, 3.4, 5.5], [0, 4.5, -30]);       // maju pelan, menoleh ke pintu
+  camTo(cam, 30, 44, [0, 3.7, 7.5],   [0, 4, -10]);
+  camTo(cam, 53, 55, [0, 2.0, 3.5],   [0, 5, -9]);          // sudut rendah saat Huggy menyerang
+  camTo(cam, 64, 68, [0.8, 5.8, -3.5], [0, 5.6, -7.5]);     // close-up wajah
+  camTo(cam, 80, 90, [0, 3.9, 2],     [0, 3.5, -20]);       // mundur
+  camTo(cam, 90, 100, [0, 3.9, 9],    [0, 3.5, -30]);
+  param(cam, "shake", 54, 55, 1);  param(cam, "shake", 63, 66, 0);       // kamera bergetar
 
   // ================= LINGKUNGAN =================
-  env.track("door",  [key(0, 0), key(25, 0), key(29, 1)]);
-  env.track("alarm", [key(0, 0), key(53.5, 0), key(55, 1), key(65, 1), key(68, 0)]);
-  const flick = [key(0, 1), key(53.5, 1)];
-  for (let t = 54, i = 0; t < 64; t += 0.3, i++) flick.push(key(t, i % 2 ? 1 : 0.15, L));   // lampu berkedip
-  flick.push(key(65, 1), key(94, 1), key(100, 0));                                            // meredup di akhir
-  env.track("power", flick);
+  param(env, "door", 25, 29, 1);                                          // pintu membuka
+  param(env, "alarm", 53.5, 55, 1);  param(env, "alarm", 65, 68, 0);      // lampu jadi merah
+  set(env, "power", 0, 1);  set(env, "power", 53.9, 1);                  // tahan terang penuh sampai 53.9
+  flicker(env, "power", 54, 64, 0.3, 1, 0.15);                            // lalu berkedip
+  param(env, "power", 65, 66, 1);  param(env, "power", 94, 100, 0);       // meredup di akhir
 
   // ================= KARAKTER 2 (charB) =================
-  charB.track("pos", [
-    key(0, [-2.2, 0, 16]), key(5, [-2.2, 0, 16]), key(17, [-2.2, 0, -6]),               // masuk lorong
-    key(54.5, [-2.2, 0, -6]), key(63, [-2.2, 0, 16], L)]);                              // lari menuju kamera
-  charB.track("rotY", [key(0, 180), key(18, 180), key(20, 90), key(30, 90), key(32, 180), key(54, 180), key(55.5, 0)]);
-  charB.track("scale", [key(0, 1), key(48, 1), key(52, 0.85), key(54, 1)]);               // mengkerut ketakutan
-  charB.track("wave", [key(0, 0), key(48, 0), key(50, 1), key(53, 1), key(54, 0)]);
+  set(charB, "pos", 0, [-2.2, 0, 16]);  set(charB, "rotY", 0, 180);
+  moveTo(charB, 5, 17, [-2.2, 0, -6]);                                    // masuk lorong
+  turnTo(charB, 18, 20, 90);  turnTo(charB, 30, 32, 180);                 // mengobrol, lalu menoleh ke pintu
+  scaleTo(charB, 48, 52, 0.85);  scaleTo(charB, 52, 54, 1);               // mengkerut ketakutan
+  pulse(charB, "wave", 48, 50, 53, 54);                                   // balas melambai
+  turnTo(charB, 54, 55.5, 0);  moveTo(charB, 54.5, 63, [-2.2, 0, 16], ease.linear);   // lari ke kamera
 
   // ================= KARAKTER 3 (charC) =================
-  charC.track("pos", [
-    key(0, [2.2, 0, 16]), key(7, [2.2, 0, 16]), key(19, [2.2, 0, -6]),
-    key(55, [2.2, 0, -6]), key(63.5, [2.2, 0, 16], L)]);
-  charC.track("rotY", [key(0, 180), key(20, 180), key(22, 270), key(30, 270), key(32, 180), key(54.5, 180), key(56, 360)]);
-  charC.track("scale", [key(0, 1), key(47, 1), key(51, 0.8), key(54.2, 1)]);
+  set(charC, "pos", 0, [2.2, 0, 16]);  set(charC, "rotY", 0, 180);
+  moveTo(charC, 7, 19, [2.2, 0, -6]);
+  turnTo(charC, 20, 22, 270);  turnTo(charC, 30, 32, 180);
+  scaleTo(charC, 47, 51, 0.8);  scaleTo(charC, 51, 54.2, 1);
+  turnTo(charC, 54.5, 56, 360);  moveTo(charC, 55, 63.5, [2.2, 0, 16], ease.linear);
 
   // ================= HUGGY =================
-  huggy.track("pos", [
-    key(0, [0, 0, -37]), key(27, [0, 0, -37]), key(30.5, [0, 0, -33.2]),               // tersembunyi di balik dinding/pintu
-    key(48, [0, 0, -11]), key(54, [0, 0, -11]),                                         // berjalan mendekat
-    key(57, [0, 0, -7.5], ease.out), key(82, [0, 0, -7.5]),                             // menerjang maju
-    key(99, [0, 0, -37])]);                                                             // berjalan kembali ke pintu
-  huggy.track("rotY",  [key(0, 0), key(80, 0), key(82, 180)]);
-  huggy.track("scale", [key(0, 1), key(54, 1), key(57, 1.3), key(66, 1.3), key(70, 1)]);   // membesar lalu mengecil
-  huggy.track("wave",  [key(0, 0), key(46, 0), key(48, 1), key(53, 1), key(55, 0),
-                        key(72, 0), key(74, 1), key(79, 1), key(80.5, 0)]);
-  huggy.track("scare", [key(0, 0), key(54, 0), key(56, 1), key(63, 1), key(67, 0)]);
+  set(huggy, "pos", 0, [0, 0, -37]);                                      // tersembunyi di balik dinding/pintu
+  moveTo(huggy, 27, 30.5, [0, 0, -33.2]);                                 // muncul di ambang pintu
+  moveTo(huggy, 30.5, 48, [0, 0, -11]);                                   // berjalan mendekat
+  pulse(huggy, "wave", 46, 48, 53, 55);                                   // melambai ramah
+  moveTo(huggy, 54, 57, [0, 0, -7.5], ease.out);                          // menerjang
+  scaleTo(huggy, 54, 57, 1.3);  scaleTo(huggy, 66, 70, 1);                // membesar lalu mengecil
+  pulse(huggy, "scare", 54, 56, 63, 67);                                  // tangan terangkat + mulut lebar
+  pulse(huggy, "wave", 72, 74, 79, 80.5);                                 // melambai ke kamera
+  turnTo(huggy, 80, 82, 180);  moveTo(huggy, 82, 99, [0, 0, -37]);        // berbalik, kembali ke pintu
 }

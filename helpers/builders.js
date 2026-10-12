@@ -214,3 +214,16 @@ export function addFur(geo, count, len, rad, baseCol, tipCol, seed = 1, accept =
   }
   return geo;
 }
+
+// Pastikan semua normal menghadap KELUAR (diperlukan oleh bulu "shell" yang bergeser sepanjang normal)
+export function orientOutward(geo) {
+  const V = geo.vertex, n = V.length / 9;
+  let cx = 0, cy = 0, cz = 0;
+  for (let i = 0; i < n; i++) { cx += V[i*9]; cy += V[i*9+1]; cz += V[i*9+2]; }
+  cx /= n; cy /= n; cz /= n;
+  for (let i = 0; i < n; i++) {
+    const o = i * 9;
+    if (V[o+6]*(V[o]-cx) + V[o+7]*(V[o+1]-cy) + V[o+8]*(V[o+2]-cz) < 0) { V[o+6] = -V[o+6]; V[o+7] = -V[o+7]; V[o+8] = -V[o+8]; }
+  }
+  return geo;
+}

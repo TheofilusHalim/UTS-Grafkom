@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -9,22 +8,13 @@
             margin: 0;
             height: 100%;
             overflow: hidden;
-            background: #1b1b2b;
+            background: #9fd1f2;            /* warna langit, biar nyatu kalau canvas belum muncul */
             font-family: sans-serif;
         }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
+        canvas { width: 100%; height: 100%; display: block; }
         #info {
-            position: absolute;
-            top: 8px;
-            left: 10px;
-            color: #fff;
-            font-size: 13px;
+            position: absolute; top: 8px; left: 10px;
+            color: #1b2a41; font-size: 13px;   /* teks gelap biar kebaca di langit terang */
         }
     </style>
 </head>
@@ -32,12 +22,14 @@
     <canvas id="c"></canvas>
     <div id="info">Drag mouse = putar kamera | Scroll = zoom | Spasi = jalan/diam</div>
 
-    <script src="shader.js"></script>
-    <script src="mat4.js"></script>
-    <script src="mesh.js"></script>
-    <script src="shapes.js"></script>
-    <script src="part.js"></script>
-    <script src="catbee.js"></script>
-    <script src="main.js"></script>
+    <!-- URUTAN PENTING: file yang dipakai file lain harus dipanggil duluan -->
+    <script src="shader.js"></script>       <!-- 1. kode GLSL -->
+    <script src="mat4.js"></script>         <!-- 2. matriks -->
+    <script src="mesh.js"></script>         <!-- 3. mesh parametrik -->
+    <script src="shapes.js"></script>       <!-- 4. ellipsoid, cone, cylinder, kurva (butuh Mesh) -->
+    <script src="part.js"></script>         <!-- 5. node hierarki (butuh Mat4) -->
+    <script src="catbee.js"></script>       <!-- 6. karakter (butuh Shapes + Part) -->
+    <script src="environment.js"></script>  <!-- 7. lingkungan (BARU, butuh Shapes + Part) -->
+    <script src="main.js"></script>         <!-- 8. program utama, paling akhir -->
 </body>
 </html>

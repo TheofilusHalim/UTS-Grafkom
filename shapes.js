@@ -1,35 +1,44 @@
 // =====================================================================
 // shapes.js -> pabrik bentuk: 3 objek kuadrik + kurva Bezier
 // =====================================================================
-const COL = {                                    // palet warna Cat Bee, disamain sama gambar referensi (R,G,B 0..1)
-  yellow:[0.96,0.89,0.52],                       // kuning pastel kulit (dulu kuning emas), warna dasar badan/kepala/kaki
-  brown:[0.31,0.25,0.31],                        // abu-ungu gelap buat belang, antena, ekor (dulu coklat)
-  cream:[0.97,0.96,0.93],                        // putih tulang buat moncong, dada, dalam telinga (dulu krem kekuningan)
-  teal:[0.45,0.83,0.88],                         // biru toska muda buat sayap (dulu toska gelap)
-  white:[1,1,1],                                 // putih murni buat kilau mata
-  black:[0.07,0.06,0.09],                        // hitam agak ungu buat mata
-  pink:[0.33,0.25,0.32],                         // nama lama "pink" dipakai buat hidung, sekarang warnanya abu-ungu gelap kayak referensi
-  grass:[0.3,0.45,0.3]                           // warna lantai, tetap
+const COL = {                                    // palet warna (R,G,B skala 0..1; 0.5 = setengah terang)
+  // ---- warna karakter (TIDAK diubah) ----
+  yellow:[0.96,0.89,0.52],                       // kuning pastel kulit Cat Bee
+  brown:[0.31,0.25,0.31],                        // abu-ungu gelap buat belang, antena, ekor
+  cream:[0.97,0.96,0.93],                        // putih tulang buat moncong, dada, dalam telinga
+  teal:[0.45,0.83,0.88],                         // biru toska muda buat sayap
+  white:[1,1,1],
+  black:[0.07,0.06,0.09],
+  pink:[0.33,0.25,0.32],                         // dipakai buat hidung (abu-ungu gelap)
+  // ---- warna lingkungan (BARU) ----
+  grass:[0.45,0.70,0.33],                        // rumput siang hari (lebih terang dari sebelumnya)
+  blade:[0.30,0.62,0.28],                        // helai rumput
+  trunk:[0.45,0.30,0.18],                        // batang pohon
+  leaf:[0.30,0.62,0.30],                         // daun hijau terang
+  leaf2:[0.20,0.50,0.28],                        // daun hijau tua
+  stone:[0.62,0.62,0.60],                        // batu
+  honey:[0.98,0.78,0.20],                        // madu (sarang lebah)
+  honey2:[0.85,0.60,0.12],                       // madu lebih gelap, buat selang-seling
+  cloud:[1,1,1],                                 // awan
+  petalPink:[0.95,0.50,0.65], petalWhite:[0.98,0.98,0.95], petalOrange:[0.98,0.60,0.25]
 };
 const flat = c => () => c;                       // fungsi warna polos (semua vertex sama)
 
 class Shapes {
-  // OBJEK 1: Ellipsoid
-  // x = a cos v cos u, y = b cos v sin u, z = c sin v   (v: -pi/2..pi/2, u: -pi..pi)
+  // OBJEK 1: Ellipsoid -> x = a cos v cos u, y = b cos v sin u, z = c sin v  (v: -pi/2..pi/2, u: -pi..pi)
   static ellipsoid(gl,a,b,c,colorFn){
     return new Mesh(gl,(u,v)=>[a*Math.cos(v)*Math.cos(u), b*Math.cos(v)*Math.sin(u), c*Math.sin(v)],
       -Math.PI,Math.PI,-Math.PI/2,Math.PI/2,48,32,colorFn);
   }
 
-  // OBJEK 2: Elliptic cone (quadric selain ellipsoid/cylinder)
-  // x = a v cos u, y = b v sin u, z = c v   (v: 0..1, puncak di v=0, sumbu z)
+  // OBJEK 2: Elliptic cone (quadric selain ellipsoid/cylinder) -> x = a v cos u, y = b v sin u, z = c v
+  // v: 0..1, puncak di v=0, alas di v=1, sumbu z
   static ellipticCone(gl,a,b,c,colorFn){
     return new Mesh(gl,(u,v)=>[a*v*Math.cos(u), b*v*Math.sin(u), c*v],
       -Math.PI,Math.PI,0,1,32,8,colorFn);
   }
 
-  // OBJEK 3: Cylinder (sumbu Y, menggantung dari y=0 ke y=-h)
-  // x = r cos u, y = -h v, z = r sin u
+  // OBJEK 3: Cylinder (sumbu Y, menggantung dari y=0 ke y=-h) -> x = r cos u, y = -h v, z = r sin u
   static cylinder(gl,r,h,colorFn){
     return new Mesh(gl,(u,v)=>[r*Math.cos(u), -h*v, r*Math.sin(u)],
       -Math.PI,Math.PI,0,1,24,8,colorFn);

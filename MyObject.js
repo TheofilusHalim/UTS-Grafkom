@@ -1,7 +1,7 @@
 // MyObject.js -- node hierarki (parent-child)
 import { LIBS } from "./helpers/libs.js";
 
-const SHELLS = 14;   // jumlah lapisan bulu (shell fur)
+const SHELLS = 20;   // jumlah lapisan bulu (shell fur): makin banyak makin halus
 
 export class MyObject {
     GL = null;

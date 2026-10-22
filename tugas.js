@@ -4,98 +4,12 @@ import { MyObject } from "./MyObject.js";
 import { Animated } from "./helpers/anim.js";
 import { Environment } from "./helpers/Environment.js";
 import { Huggy } from "./characters/Huggy.js";
+import { createRenderer } from "./helpers/shader.js";
 import { Dummy } from "./characters/Dummy.js";       // placeholder; ganti dengan karakter buatan temanmu
 import { buildStory, DURATION, captions } from "./story.js";
 
-// ======================= SHADER =======================
-const vsSource = `
-attribute vec3 position, color, normal;
-uniform mat4 Pmatrix, Vmatrix, Mmatrix;
-uniform mat3 uNormalMat;                 // inverse-transpose: normal benar walau objek diskalakan tak seragam
-uniform float uShell, uFurLen;           // lapisan bulu ke-n (0 = kulit) dan panjang bulu
-varying vec3 vColor, vNormal, vWorld, vObj;
-void main() {
-  vec3 p = position + normal * (uShell * uFurLen);        // geser sepanjang normal -> lapisan bulu
-  vec4 w = Mmatrix * vec4(p, 1.0);
-  vWorld = w.xyz;
-  vColor = color;
-  vNormal = uNormalMat * normal;
-  vObj = position;
-  gl_Position = Pmatrix * Vmatrix * w;
-}`;
-const fsSource = `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
-varying vec3 vColor, vNormal, vWorld, vObj;
-uniform vec3 uTint, uCam, uLP[3], uLC[3];
-uniform float uEmissive, uShell;
-uniform vec4 uMask;                      // bola tanpa bulu (wajah)
-float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-void main() {
-  vec3 base = vColor * uTint;
-  if (uShell > 0.0) {                                    // ---- BULU: tiap sel = 1 helai; makin tinggi makin banyak yang dibuang
-    float fm = uMask.w > 0.0 ? smoothstep(uMask.w * 0.45, uMask.w, distance(vObj, uMask.xyz)) : 1.0;
-    float r = hash(floor(vObj * 75.0));
-    if (r < uShell || uShell > fm) discard;
-    base *= mix(0.55, 1.15, uShell);                     // pangkal lebih gelap, ujung lebih terang
-  }
-  vec3 N = normalize(vNormal);
-  vec3 V = normalize(uCam - vWorld);
-  if (dot(N, V) < 0.0) N = -N;                           // permukaan dua sisi
-  // 1) AMBIENT hemisphere: atas (langit) lebih terang/biru, bawah (lantai) lebih gelap/hangat
-  vec3 light = mix(vec3(0.20, 0.18, 0.20), vec3(0.34, 0.40, 0.52), N.y * 0.5 + 0.5);
-  // 2) DIFFUSE lampu arah:  max(N·L, 0)
-  light += vec3(0.20, 0.24, 0.32) * max(dot(N, normalize(vec3(0.2, 1.0, 0.4))), 0.0);
-  vec3 spec = vec3(0.0);
-  for (int i = 0; i < 3; i++) {                          // 3) lampu titik lorong: diffuse + specular + redaman jarak
-    vec3 Lv = uLP[i] - vWorld; float d = length(Lv); Lv /= d;
-    float att = 1.0 / (1.0 + 0.04 * d + 0.015 * d * d);
-    float df = max(dot(N, Lv), 0.0);
-    light += uLC[i] * df * att * 2.2;
-    vec3 H = normalize(Lv + V);                          // Blinn-Phong: (N·H)^shininess
-    spec += uLC[i] * pow(max(dot(N, H), 0.0), 32.0) * att * 0.6 * df;
-  }
-  vec3 col = base * light + spec + base * uEmissive * 1.5;
-  col += pow(1.0 - max(dot(N, V), 0.0), 3.0) * 0.10 * vec3(0.5, 0.6, 0.8);   // 4) RIM light: tepi siluet
-  float fog = smoothstep(12.0, 40.0, length(uCam - vWorld));
-  gl_FragColor = vec4(mix(col, vec3(0.02, 0.03, 0.05), fog), 1.0);
-}`;
-
 const canvas = document.getElementById("glcanvas");
-const GL = canvas.getContext("webgl", { antialias: true });
-function compile(type, src) {
-  const s = GL.createShader(type); GL.shaderSource(s, src); GL.compileShader(s);
-  if (!GL.getShaderParameter(s, GL.COMPILE_STATUS)) console.error(GL.getShaderInfoLog(s));
-  return s;
-}
-const prog = GL.createProgram();
-GL.attachShader(prog, compile(GL.VERTEX_SHADER, vsSource));
-GL.attachShader(prog, compile(GL.FRAGMENT_SHADER, fsSource));
-GL.linkProgram(prog);
-GL.useProgram(prog);
-
-const locs = {
-  position: GL.getAttribLocation(prog, "position"),
-  color:    GL.getAttribLocation(prog, "color"),
-  normal:   GL.getAttribLocation(prog, "normal"),
-  M:        GL.getUniformLocation(prog, "Mmatrix"),
-  N:        GL.getUniformLocation(prog, "uNormalMat"),
-  shell:    GL.getUniformLocation(prog, "uShell"),
-  furLen:   GL.getUniformLocation(prog, "uFurLen"),
-  furMask:  GL.getUniformLocation(prog, "uMask"),
-  tint:     GL.getUniformLocation(prog, "uTint"),
-  emissive: GL.getUniformLocation(prog, "uEmissive"),
-};
-const uP = GL.getUniformLocation(prog, "Pmatrix"), uV = GL.getUniformLocation(prog, "Vmatrix");
-const uCam = GL.getUniformLocation(prog, "uCam");
-const uLP = GL.getUniformLocation(prog, "uLP"), uLC = GL.getUniformLocation(prog, "uLC");
-GL.enableVertexAttribArray(locs.position);
-GL.enableVertexAttribArray(locs.color);
-GL.enableVertexAttribArray(locs.normal);
-
+const { GL, prog, locs, uP, uV, uCam, uLP, uLC } = createRenderer(canvas);   // shader & setup GL ada di helpers/shader.js
 
 // ======================= SCENE: SEMUA KARAKTER DISATUKAN DI SINI =======================
 const ctx = { GL, prog, locs };
@@ -119,8 +33,10 @@ const keys = new Set();
 const fc = { pos: [0, 3.7, 7.5], yaw: 0, pitch: 0 };                 // kamera bebas (fly camera)
 const fwdOf = () => [Math.sin(fc.yaw) * Math.cos(fc.pitch), Math.sin(fc.pitch), -Math.cos(fc.yaw) * Math.cos(fc.pitch)];
 let curEye = [0, 4, 8], curTarget = [0, 3, -8];
+const statusEl = document.getElementById("camstatus");
 window.addEventListener("keydown", e => {
   keys.add(e.code);
+  if (e.repeat && (e.code === "KeyF" || e.code === "Space")) return;   // tahan tombol tidak boleh menyalakan-mematikan berulang
   if (e.code === "Space") { playing = !playing; e.preventDefault(); }
   else if (e.code === "ArrowRight") T = Math.min(DURATION, T + 5);
   else if (e.code === "ArrowLeft") T = Math.max(0, T - 5);
@@ -135,6 +51,7 @@ window.addEventListener("keydown", e => {
   }
 });
 window.addEventListener("keyup", e => keys.delete(e.code));
+window.addEventListener("blur", () => { keys.clear(); drag = false; });   // jendela kehilangan fokus -> lepas semua tombol
 canvas.addEventListener("mousedown", e => { drag = true; lx = e.clientX; ly = e.clientY; });
 window.addEventListener("mouseup", () => drag = false);
 window.addEventListener("mousemove", e => {
@@ -203,6 +120,7 @@ function frame(ms) {
   GL.uniform3fv(uLC, new Float32Array(L.col));
   scene.render(LIBS.get_I4());
 
+  statusEl.textContent = free ? "KAMERA BEBAS aktif - WASD gerak, drag = lihat, F = kembali" : "";
   const cap = captions.find(x => T >= x[0] && T < x[1]) || captions[captions.length - 1];
   capEl.textContent = cap[2];
   requestAnimationFrame(frame);

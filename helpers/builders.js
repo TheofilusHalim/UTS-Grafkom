@@ -132,7 +132,7 @@ export function bspline(pts, t) {
   return out;
 }
 // Tabung mengikuti kurva c(u), u∈[0,1], supaya kurva terlihat (bibir, alis)
-export function tube(curve, radius, color, nu = 60, nv = 10) {
+export function tube(curve, radius, color, nu = 60, nv = 10, capPow = 0.35) {
   return parametric((u, v) => {
     const e = 1e-3;
     const c = curve(u);
@@ -140,7 +140,7 @@ export function tube(curve, radius, color, nu = 60, nv = 10) {
     let ref = [0, 0, 1];
     if (Math.abs(T[2]) > 0.9) ref = [0, 1, 0];
     const N = norm(cross(ref, T)), Bn = cross(T, N);
-    const ph = v * 2 * Math.PI, rr = radius * Math.pow(Math.sin(Math.PI * u), 0.35); // ujung menutup
+    const ph = v * 2 * Math.PI, rr = radius * Math.pow(Math.sin(Math.PI * u), capPow); // ujung menutup
     const dx = Math.cos(ph), dy = Math.sin(ph);
     const nrm = [dx*N[0]+dy*Bn[0], dx*N[1]+dy*Bn[1], dx*N[2]+dy*Bn[2]];
     return { p: [c[0]+rr*nrm[0], c[1]+rr*nrm[1], c[2]+rr*nrm[2]], n: nrm };
